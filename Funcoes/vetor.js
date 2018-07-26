@@ -61,10 +61,6 @@ function multiplicarVetorPorEscalar(escalar, vetorA){
 function moduloVetor(vetorA){
     let modulo;
     modulo = 0;
-    /*modulo += (Math.pow(vetorA.x, 2));
-    modulo += (Math.pow(vetorA.y, 2));
-    modulo += (Math.pow(vetorA.z, 2));
-    modulo = Math.sqrt(modulo);*/
     modulo = Math.sqrt((vetorA.x*vetorA.x)+(vetorA.y*vetorA.y)+(vetorA.z*vetorA.z));
     return modulo;
 }

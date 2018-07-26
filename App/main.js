@@ -3,15 +3,16 @@ var camera;
 var iluminacao;
 let I;
 let telaX = window.screen.availWidth/1.5;
-let telaY = window.screen.availHeight/1.5;
+let telaY = window.screen.availHeight;
 var ZbufferX = [];
 var Zbuffer = [];
-var bufferCorX = [];
+//var bufferCorX = [];
 var bufferCor = [];
 let Cd;
 let Cs;
 let Ca;
 let CIlum;
+let qtdpint = 0;
 
 function Inicializar(){
     InicializadorZbuffer();     
@@ -24,10 +25,23 @@ function Inicializar(){
     ordenarVertices();
     desenharTriangulos();
     draw();
+
     console.log(Zbuffer);
     console.log(bufferCor);
-    
     console.log(Objetos);
+    console.log(qtdpint);
+    
+}
+
+function InicializadorZbuffer(){
+    for (let i = 0; i < telaY; i++) {
+        for (let j = 0; j < telaX; j++) {
+            ZbufferX[j] = Infinity;
+            //bufferCorX[j] = new Vetor(0,0,0);
+        }
+        Zbuffer[i] = ZbufferX;
+        //bufferCor[i] = bufferCorX;
+    }
 }
 
 //Função para criar o vetor U e a matriz I
@@ -185,7 +199,7 @@ function desenharTrianguloYIgualBaixo(objetoIndice,vt1,vt2,vt3,bo){
 
     for (let Yscan = v1.y; Yscan < v3.y; Yscan++) {
         if(bo){
-            desenhador(Xmin,Xmax,Yscan,vt1,vt2,vt3,objetoIndice)
+            //desenhador(Xmin,Xmax,Yscan,vt1,vt2,vt3,objetoIndice)
         }else{
             desenhadorBaixo(Xmin,Xmax,Yscan,vt1,vt2,vt3,objetoIndice);
         }
@@ -213,7 +227,7 @@ function desenharTrianguloYIgualCima(objetoIndice,vt1,vt2,vt3,bo){
 
     for (let Yscan = v3.y; Yscan > v1.y; Yscan--) {
         if(bo){
-            desenhador(Xmin,Xmax,Yscan,vt1,vt2,vt3,objetoIndice);
+            //desenhador(Xmin,Xmax,Yscan,vt1,vt2,vt3,objetoIndice);
         }else{
             desenhadorCima(Xmin,Xmax,Yscan,vt1,vt2,vt3,objetoIndice);
         }
@@ -227,7 +241,39 @@ function desenharTriangulos(){
     for (let i = 0; i < Objetos.length; i++) {
         for (let j = 0; j < Objetos[i].triangulos.length; j++) {
 
-            let tri = Objetos[i].triangulos[j];
+            let v1 = Objetos[i].triangulos[j].vertice1;
+            let v2 = Objetos[i].triangulos[j].vertice2;
+            let v3 = Objetos[i].triangulos[j].vertice3;
+
+            let p1 = Objetos[i].pontos[v1];
+            let p2 = Objetos[i].pontos[v2];
+            let p3 = Objetos[i].pontos[v3];
+
+            let Xmim = Objetos[i].pontos_tela[v1].x;
+            let Xmax = Objetos[i].pontos_tela[v1].x;
+            let Ymim = Objetos[i].pontos_tela[v1].y;
+            let Ymax = Objetos[i].pontos_tela[v3].y;
+
+            let Mv12 = (parseFloat(p2.y-p1.y)/parseFloat(p2.x-p1.x));
+            let Mv13 = (parseFloat(p3.y-p1.y)/parseFloat(p3.x-p1.x));
+            let Mv23 = (parseFloat(p3.y-p2.y)/parseFloat(p3.x-p2.x));
+            
+            let verificado=true;
+
+            if(p1.y == p2.y){
+                Xmax = p2.x;
+                Mv12 = Mv23;
+
+                verificado = false;
+            }else if(p1.y == p3.y){
+                Xmax = p3.x;
+                Mv13 = Mv23;
+                verificado = false;
+            }
+
+            scanline(Xmim, Xmax, Ymim, Ymax, v1, v2, v3, Mv12, Mv13, Mv23, i, verificado);
+
+            /*let tri = Objetos[i].triangulos[j];
 
             if(Objetos[i].pontos_tela[tri.vertice1].y==Objetos[i].pontos_tela[tri.vertice2].y){
                 desenharTrianguloYIgualCima(i,tri.vertice1,tri.vertice2,tri.vertice3,true);
@@ -243,21 +289,127 @@ function desenharTriangulos(){
                 vertice_aux.normal = Objetos[i].triangulos[j].normal;
                 desenharTrianguloYIgualBaixo(i,tri.vertice1,tri.vertice2, vertice_aux,false);
                 desenharTrianguloYIgualCima(i,tri.vertice2,vertice_aux,tri.vertice3,false);
-            }
+            }*/
             
         }
     }
 }
 
-function InicializadorZbuffer(){
-    for (let i = 0; i < telaY; i++) {
-        for (let j = 0; j < telaX; j++) {
-            ZbufferX[j] = Infinity;
-            bufferCorX[j] = new Vetor(0,0,0);
+function scanline(Xmin,Xmax,Ymim,Ymax,v1,v2,v3,Mv12, Mv13, Mv23, objetoIndice, verificado){
+    
+    let pt1 = Objetos[objetoIndice].pontos_tela[v1];
+    let pt2 = Objetos[objetoIndice].pontos_tela[v2];
+    let pt3 = Objetos[objetoIndice].pontos_tela[v3];
+
+    let p1 = Objetos[objetoIndice].pontos[v1];
+    let p2 = Objetos[objetoIndice].pontos[v2];
+    let p3 = Objetos[objetoIndice].pontos[v3];
+
+    let bari = [];
+    let p_linha = new Ponto();
+    
+    for (let y = Ymim; y <= Ymax; y++) {
+        
+        
+        for (let x = Xmin; x <= Xmax; x++) {
+            x = Math.floor(x);
+            y = Math.floor(y);
+            
+            if(x>0 && x<telaX && y>0 && y<telaY){
+                let p = new Ponto(0,0,0);
+                p.x = x;
+                p.y = y;
+
+                bari = acharBaricentro(p,pt1,pt2,pt3);
+
+                p_linha = SomaPontos(SomaPontos(multiplicarPontoPorEscalar(bari[0],p1),multiplicarPontoPorEscalar(bari[1],p2)),multiplicarPontoPorEscalar(bari[2],p3));
+                //console.log(p);
+                //console.log(p_linha);
+                
+                //console.log(Zbuffer);
+                
+                if( Zbuffer.length > p.x && Zbuffer[p.x].length > p.y && p_linha.z <= Zbuffer[p.x][p.y]){
+                    qtdpint++;
+                    Zbuffer[p.x][p.y] = p_linha.z;
+                    let zero = new Ponto(0,0,0);
+                    let N = SomaVetores(SomaVetores(multiplicarVetorPorEscalar(bari[0],p1.normal),multiplicarVetorPorEscalar(bari[1],p2.normal)),multiplicarVetorPorEscalar(bari[2],p3.normal));
+                    let V = SubtracaoPontos(zero, p_linha);
+                    let L = SubtracaoVetorPonto(iluminacao.Pl, p_linha);
+                    let R = SubtracaoVetores( multiplicarVetorPorEscalar((2*produtoInterno(L,N)),N) ,L);/* */
+
+                    N = normalizarVetor(N);
+                    V = normalizarVetor(V);
+                    L = normalizarVetor(L);
+                    R = normalizarVetor(R);/* */
+
+                    if(produtoInterno(N,V)<0){
+                        N = multiplicarVetorPorEscalar(-1,N);
+                    }
+        
+                    Ca = multiplicarVetorPorEscalar(iluminacao.ka, iluminacao.Ia);
+                    Cd = MultiplicacaoComponenteComponente(multiplicarVetorPorEscalar((iluminacao.kd * produtoInterno(N,L)),iluminacao.Od),iluminacao.Il);
+                    Cs = multiplicarVetorPorEscalar((iluminacao.ks*(Math.pow(produtoInterno(R,V),iluminacao.n))),iluminacao.Il);
+
+                    if(produtoInterno(N,L)<0){
+                        Cd = new Vetor(0,0,0);
+                        Cs = new Vetor(0,0,0);
+                    }else{
+                        if(produtoInterno(R,V)<0){
+                            Cs = new Vetor(0,0,0);
+                        }
+                    }
+                    
+                    CIlum = SomaVetores(SomaVetores(Ca,Cd),Cs);
+
+                    if(CIlum.x > 255){
+                        CIlum.x = 255;
+                    }
+                    if(CIlum.y > 255){
+                        CIlum.y = 255;
+                    }
+                    if(CIlum.z > 255){
+                        CIlum.z = 255;
+                    }
+                    
+                    let cor = {
+                        r: CIlum.x,
+                        g: CIlum.y,
+                        b: CIlum.z
+                    }
+
+                    //console.log(CIlum);
+                    
+                    //bufferCor[p.x][p.y] = CIlum;
+                    bufferCor.push({x:p.x,y:p.y, cor:cor});
+                    //draw();
+                    //console.log(Ca,Cd,Cs);
+                }
+
+            }
+
+
         }
-        Zbuffer[i] = ZbufferX;
-        bufferCor[i] = bufferCorX;
+
+        if(verificado && (y==pt2.y)||(y==pt3.y)){
+            if (y==pt2.y) {
+                Mv12 = Mv23;
+            }else{
+                Mv13 = Mv23;
+            }
+            verificado = false;
+        }
+
+        if (Mv12 != Infinity && Mv12 != -Infinity) {
+            Xmin += 1/Mv12;
+        }
+
+        if (Mv13 != Infinity && Mv13 != -Infinity) {
+            Xmax += 1/Mv13;
+        }
+
     }
+
+
 }
 
 function desenhador(Xmin,Xmax,Yscan,vt1,vt2,vt3,objetoIndice){
@@ -278,6 +430,7 @@ function desenhador(Xmin,Xmax,Yscan,vt1,vt2,vt3,objetoIndice){
         p.z=0;
         
         bari = acharBaricentro(p,v1,v2,v3);
+
         p_linha = SomaPontos(SomaPontos(multiplicarPontoPorEscalar(bari[0],vv1),multiplicarPontoPorEscalar(bari[1],vv2)),multiplicarPontoPorEscalar(bari[2],vv3));
         /*console.log(Zbuffer.length > p.x);
         console.log( Zbuffer[p.x].length > p.y);
@@ -318,6 +471,7 @@ function desenhador(Xmin,Xmax,Yscan,vt1,vt2,vt3,objetoIndice){
             //console.log(Ca,Cd,Cs);
             
             CIlum = SomaVetores(SomaVetores(Ca,Cd),Cs);
+
             if(CIlum.x > 255){
                 CIlum.x = 255;
             }
@@ -330,7 +484,8 @@ function desenhador(Xmin,Xmax,Yscan,vt1,vt2,vt3,objetoIndice){
 
             //console.log(CIlum);
             
-            bufferCor[p.x][p.y] = CIlum;
+            //bufferCor[p.x][p.y] = CIlum;
+            bufferCor.push({x:p.x,y:p.y, cor:CIlum});
             //draw();
             //console.log(Ca,Cd,Cs);
             
@@ -416,7 +571,8 @@ function desenhadorBaixo(Xmin,Xmax,Yscan,vt1,vt2,v3,objetoIndice){
                 CIlum.z = 255;
             }
 
-            bufferCor[p.x][p.y] = CIlum;
+            //bufferCor[p.x][p.y] = CIlum;
+            bufferCor.push({x:p.x,y:p.y, cor:CIlum});
             //console.log(Ca,Cd,Cs);
             
             //draw();
@@ -500,7 +656,9 @@ function desenhadorCima(Xmin,Xmax,Yscan,vt1,v2,vt3,objetoIndice){
                 CIlum.z = 255;
             }
 
-            bufferCor[p.x][p.y] = CIlum;
+           //bufferCor[p.x][p.y] = CIlum;
+           console.log(CIlum);
+           bufferCor.push({x:p.x, y:p.y, cor:CIlum});
             //console.log(Ca,Cd,Cs);
             
         }
@@ -508,28 +666,6 @@ function desenhadorCima(Xmin,Xmax,Yscan,vt1,v2,vt3,objetoIndice){
     }
     
 }
-
-/*function acharBaricentro(p,v1,v2,v3){
-    let baricentro = [];
-    
-    let a = (v1.x+v2.x+v3.x);
-    let b = a;
-    let c = a - p.x;
-    
-    let d = (v1.y+v2.y+v3.y);
-    let e = d;
-    let f = d - p.y;
-
-    let gama = (parseFloat((f*a)-(d*c))/parseFloat((a*e)-(d*b)));
-    let beta = (parseFloat(c-(b*gama))/parseFloat(a));
-    let alfa = 1 - beta - gama;
-
-    baricentro[0] = alfa ;//alfa
-    baricentro[1] = beta ;//beta
-    baricentro[2] = gama ;//gama
-
-    return baricentro;
-}*/
 
 function acharBaricentro(p,v1,v2,v3){
     let baricentro = [];
@@ -558,11 +694,9 @@ function draw(){
     canvas.width = telaX;
     canvas.heigth = telaY;
     var ctx=c.getContext("2d");
-    for (let i = 0; i < Zbuffer.length; i++) {
-        for (let j = 0; j < Zbuffer[i].length; j++) {
-            ctx.fillRect(j,i,1,1);
-            ctx.fillStyle = "rgb("+bufferCor[i][j].x+","+bufferCor[i][j].y+","+bufferCor[i][j].z+")";
-            // ctx.arc(,25,1,0,0);
-        }
+   
+    for (let i = 0; i < bufferCor.length; i++) {
+        ctx.fillRect(bufferCor[i].x,bufferCor[i].y,1,1);
+        ctx.fillStyle = "rgb("+bufferCor[i].cor.r+","+bufferCor[i].cor.g+","+bufferCor[i].cor.b+")";
     }
 }

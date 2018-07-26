@@ -59,6 +59,8 @@ var upFile = function(parametro) {
 
 
 function decomporArquivo(indice, nome){
+    //console.log(arquivo_objetos[indice]);
+    
     var linhas = arquivo_objetos[indice].split('\n');
     var qtd = linhas[0].split(' ');
     qtd[0] = parseInt(qtd[0]);
